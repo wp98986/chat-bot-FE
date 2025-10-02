@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 interface ChatInputProps {
   onSendMessage: (content: string) => void;
-  onVoiceRecord: (url?: string,audioBlob?: Blob) => void;
+  onVoiceRecord: (type:string,url?: string,audioBlob?: Blob) => void;
 }
 
 export function ChatInput({ onSendMessage, onVoiceRecord }: ChatInputProps) {
@@ -47,11 +47,11 @@ export function ChatInput({ onSendMessage, onVoiceRecord }: ChatInputProps) {
     }
   };
 
-  const startRecording = async () => {
+  const startRecording = async (type) => {
     try {
       // 请求麦克风权限
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(stream,{ mimeType: 'audio/webm' });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -81,11 +81,11 @@ export function ChatInput({ onSendMessage, onVoiceRecord }: ChatInputProps) {
 
         // 创建音频Blob
         const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/wav",
+          type: "audio/webm",
         });
         const url = URL.createObjectURL(audioBlob);
         // 调用父组件回调
-        onVoiceRecord(url,audioBlob);
+        onVoiceRecord(type,url,audioBlob);
 
         // 保存到本地
         // saveAudioToLocal(audioBlob);
@@ -132,25 +132,25 @@ export function ChatInput({ onSendMessage, onVoiceRecord }: ChatInputProps) {
   };
 
   // 保存音频到本地
-//   const saveAudioToLocal = (audioBlob: Blob) => {
-//     try {
-//       const url = URL.createObjectURL(audioBlob);
-//       const a = document.createElement("a");
-//       a.href = url;
-//       a.download = `recording-${new Date()
-//         .toISOString()
-//         .slice(0, 19)
-//         .replace(/:/g, "-")}.wav`;
-//       document.body.appendChild(a);
-//       a.click();
-//       document.body.removeChild(a);
-//       URL.revokeObjectURL(url);
-//       toast.success("语音已保存到本地");
-//     } catch (error) {
-//       console.error("保存音频失败:", error);
-//       toast.error("保存音频失败，请重试");
-//     }
-//   };
+  const saveAudioToLocal = (audioBlob: Blob) => {
+    try {
+      const url = URL.createObjectURL(audioBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `recording-${new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/:/g, "-")}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("语音已保存到本地");
+    } catch (error) {
+      console.error("保存音频失败:", error);
+      toast.error("保存音频失败，请重试");
+    }
+  };
 
   // 格式化录制时间
   const formatRecordingTime = (seconds: number) => {
@@ -183,7 +183,7 @@ export function ChatInput({ onSendMessage, onVoiceRecord }: ChatInputProps) {
 
         <button
           type="button"
-          onClick={isRecording ? stopRecording : startRecording}
+          onClick={isRecording ? stopRecording : ()=>startRecording("audio-text")}
           className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-colors ${
             isRecording
               ? "bg-red-100 text-red-500 hover:bg-red-200"
@@ -201,6 +201,29 @@ export function ChatInput({ onSendMessage, onVoiceRecord }: ChatInputProps) {
           ) : (
             <i className="fa-solid fa-microphone"></i>
           )}
+        </button>
+
+        <button
+          type="button"
+          onClick={isRecording ? stopRecording : ()=>startRecording("audio")}
+          className={`absolute right-10 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-colors ${
+            isRecording
+              ? "bg-red-100 text-red-500 hover:bg-red-200"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+          }`}
+          aria-label={isRecording ? "停止录音" : "开始录音"}
+        >
+          {isRecording ? (
+            <>
+              <i className="fa-solid fa-stop"></i>
+              <span className="ml-1 text-xs font-medium">
+                {formatRecordingTime(recordingTime)}
+              </span>
+            </>
+          ) : (
+            <i className="fa-solid fa-microphone"></i>
+          )}
+          2
         </button>
       </div>
 

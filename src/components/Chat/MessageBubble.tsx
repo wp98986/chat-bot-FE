@@ -10,7 +10,6 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const isText = message.type === "text";
   const isAudio = message.type === "audio";
   const renderContent = () => {
-    console.log(message);
     
     if (isText) {
       return message.content;

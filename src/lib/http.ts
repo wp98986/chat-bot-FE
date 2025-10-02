@@ -147,9 +147,9 @@ const http = new HttpRequest({
 //   baseURL: process.env.REACT_APP_API_BASE_URL || '/api',
   baseURL: "http://127.0.0.1:5000/",
   timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+//   headers: {
+//     'Content-Type': 'application/json'
+//   }
 });
 
 export default http;

@@ -32,7 +32,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-//   const [audioUrl, setAudioUrl] = useState<string>("");
+  //   const [audioUrl, setAudioUrl] = useState<string>("");
 
   // 自动滚动到最新消息
   useEffect(() => {
@@ -77,52 +77,74 @@ export default function Home() {
       .catch((error) => {
         console.error(error);
       });
-
-    // 模拟AI思考延迟
-    // setTimeout(() => {
-    //   // 添加AI回复
-    //   const aiMessage: Message = {
-    //     id: `ai-${Date.now()}`,
-    //     content: generateAIResponse(content),
-    //     sender: 'ai',
-    //     timestamp: new Date()
-    //   };
-
-    //   setMessages(prev => [...prev, aiMessage]);
-    //   setIsLoading(false);
-    // }, 1500 + Math.random() * 1000);
   };
 
   // 处理语音消息
-  const handleVoiceMessage = (url?: string, audioBlob?: Blob) => {
+  const handleVoiceMessage = (type: string, url?: string, audioBlob?: Blob) => {
     // 模拟语音录制和转换
     setIsLoading(true);
-    console.log(audioBlob); // 音频Blob对象 未来用于大模型提示词
     // url && setAudioUrl(url);
     // 模拟语音处理延迟
     setTimeout(
       () => {
-        const voiceText =
-          "这是一条通过语音输入的消息，语音识别功能正在演示中。";
+        // 添加用户语音和文字，模拟同时发送文字和媒体消息
+        const userMessage: Message[] = [
+          {
+            id: `user-${Date.now()}`,
+            content: url || "",
+            sender: "user",
+            timestamp: new Date(),
+            type: "audio",
+          },
+          {
+            id: `user-${Date.now()}-text`,
+            content: "我刚说的的哪里的话？",
+            sender: "user",
+            timestamp: new Date(),
+            type: "text",
+          },
+        ];
 
-        // 添加用户语音转文字消息
-        const userMessage: Message = {
-          id: `user-${Date.now()}`,
-          content: url || "",
-          sender: "user",
-          timestamp: new Date(),
-          type: "audio",
-        };
+        setMessages((prev) => [...prev, ...userMessage]);
+        const formData = new FormData();
+        if (audioBlob) {
+          // 添加 Blob 对象到 FormData，并指定文件名和类型
+          // 创建一个新的File对象，确保有正确的文件名和类型
+          const audioFile = new File([audioBlob], "recording.webm", {
+            type: audioBlob.type || "audio/webm",
+          });
+          const messageArray = [
+            { type: "audio", value: audioFile },
+            { type: "text", value: "我刚说的的哪里的话？" },
+          ];
 
-        setMessages((prev) => [...prev, userMessage]);
+          // 遍历数组，为每个元素创建独立的FormData字段
+          // 音频Blob对象需要特殊处理，因为FormData不支持直接添加Blob对象，需要使用append方法并指定文件名和类型
+          messageArray.forEach((item, index) => {
+            if (item.type === "audio" && item.value instanceof Blob) {
+              // 对于Blob类型，直接添加Blob对象
+              formData.append(`messages[${index}].type`, item.type);
+              formData.append(
+                `messages[${index}].value`,
+                item.value,
+                "recording.webm"
+              );
+            } else {
+              // 对于文本类型，添加类型和值
+              formData.append(`messages[${index}].type`, item.type);
+              formData.append(`messages[${index}].value`, item.value);
+            }
+          });
+          formData.append("message_count", messageArray.length.toString());
+          //   formData.append("message", JSON.stringify(messageArray));
+          //   console.log("已添加音频文件到FormData:", audioFile);
+        }
+        formData.append("session_id", "12345678");
+        formData.append("type", type); // 设置消息为类型 audio-text为语音转文字类型，audio为语音消息
 
-        // 请求接口获取答案 
+        // 请求接口获取答案
         http
-          .post("/chat", {
-            // params: { page: 1, size: 10 }
-            message: voiceText,
-            session_id: "12345678",
-          })
+          .post("/chat", formData)
           .then((data) => {
             // const { resposne: msg } = data;
             // 添加AI回答的消息
@@ -139,21 +161,6 @@ export default function Home() {
           .catch((error) => {
             console.error(error);
           });
-
-        // 模拟AI思考延迟
-        // setTimeout(() => {
-        //   // 添加AI回复
-        //   const aiMessage: Message = {
-        //     id: `ai-${Date.now()}`,
-        //     content: generateAIResponse(voiceText),
-        //     sender: "ai",
-        //     timestamp: new Date(),
-        //     type: "text",
-        //   };
-
-        //   setMessages((prev) => [...prev, aiMessage]);
-        //   setIsLoading(false);
-        // }, 1500 + Math.random() * 1000);
       },
       audioBlob ? 1000 : 2000
     );
